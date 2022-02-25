@@ -31,7 +31,7 @@ object Main {
       .throttle(50, 1.second)
       .wireTap(Flow.fromFunction[String, Future[HttpResponse]](url => {
         println(s"$url -- start with love")
-        Http().singleRequest(HttpRequest(uri = url))
+        Http().singleRequest(HttpRequest(uri = url.replace(" ", "")))
       })
         .async
         .to(Sink
