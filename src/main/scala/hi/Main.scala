@@ -8,9 +8,11 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.io.Source
 
 object Main {
-  //val file = Source.fromFile("urls.txt").getLines.toList
-  val file = Source.fromURL("https://raw.githubusercontent.com/david-l-books/storage/main/urls.txt").getLines.toList
+  val REFRESH_TIME = 10 * 60 * 1000
 
+  var file = fetchUrls
+
+  var lastUpdate = System.currentTimeMillis()
 
   def main(args: Array[String]): Unit = {
     implicit val system: ActorSystem = ActorSystem()
@@ -19,6 +21,11 @@ object Main {
     var i = 0
     while (true) {
       println(s"iteration $i")
+
+      if (System.currentTimeMillis() - lastUpdate > REFRESH_TIME) {
+        file = fetchUrls
+        println(s"list updated. size=${file.size}")
+      }
 
       file.foreach {
         url =>
@@ -35,6 +42,15 @@ object Main {
 
       Thread.sleep(50)
       i += 1
+    }
+  }
+
+  private def fetchUrls = {
+    val source = Source.fromURL("https://raw.githubusercontent.com/david-l-books/storage/main/urls.txt")
+    try {
+      source.getLines.toList
+    } finally {
+      source.close()
     }
   }
 }
