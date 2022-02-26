@@ -58,3 +58,5 @@
 /build-sbt/
 local.sbt
 jitwatch.out
+
+/failures/
