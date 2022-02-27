@@ -3,6 +3,7 @@ package hi
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.settings.ConnectionPoolSettings
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -73,17 +74,15 @@ object Test {
     while (true) {
       file.foreach {
         url =>
-
-
           innerRequest(url, false)
       }
-
-      Thread.sleep(20)
+      Thread.sleep(500)
     }
   }
 
   private def innerRequest(url: String, recursion: Boolean)(implicit system: ActorSystem, executionContext: ExecutionContextExecutor): Future[Unit] = {
     val str = randomQueryParam(url)
+
     Http().singleRequest(HttpRequest(uri = str)).flatMap {
       case HttpResponse(StatusCodes.OK, _, _, _) =>
         if (!recursion) {
