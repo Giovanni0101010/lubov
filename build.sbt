@@ -5,7 +5,7 @@ ThisBuild / scalaVersion := "2.12.15"
 lazy val root = (project in file("."))
   .settings(
     name := "lubov",
-    mainClass := Some("hi.Main")
+    mainClass := Some("hi.Test")
   )
 
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.6.18"
