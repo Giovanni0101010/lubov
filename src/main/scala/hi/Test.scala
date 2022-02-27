@@ -6,7 +6,8 @@ import akka.http.scaladsl.model._
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.io.Source
 import scala.util.Random
 
 object Test {
@@ -73,29 +74,41 @@ object Test {
       file.foreach {
         url =>
 
-          val str = randomQueryParam(url)
 
-          Http().singleRequest(HttpRequest(uri = str)).map {
-            case HttpResponse(StatusCodes.OK, _, _, _) =>
-              println(s"attack $str")
-            case HttpResponse(StatusCodes.Redirection(_), headers, _, _) =>
-              println(s"attack with redirect -> $str")
-              val link = headers.filter(ss => ss.name().equals("Location"))
-
-              if (link.nonEmpty && link.head.value().startsWith("http") && link.head.value() != str) {
-                Http().singleRequest(HttpRequest(uri = link.head.value())).map{
-                  case HttpResponse(StatusCodes.OK, _, _, _) =>
-                    println(s"attack with redirect $str")
-                  case _ =>
-                    sys.error(s"attack with redirect failed $str")
-                }
-              }
-            case err =>
-              sys.error(s"server is not responding: $err")
-          }
+          innerRequest(url, false)
       }
 
       Thread.sleep(20)
+    }
+  }
+
+  private def innerRequest(url: String, recursion: Boolean)(implicit system: ActorSystem, executionContext: ExecutionContextExecutor): Future[Unit] = {
+    val str = randomQueryParam(url)
+    Http().singleRequest(HttpRequest(uri = str)).flatMap {
+      case HttpResponse(StatusCodes.OK, _, _, _) =>
+        if (!recursion) {
+          println(s"attack $str")
+        } else {
+          println(s"attack after redirect $str")
+        }
+
+        Future.successful()
+      case HttpResponse(StatusCodes.Redirection(_), headers, _, _) =>
+        if (recursion) {
+          println(s"too many redirects $url")
+          Future.successful()
+        } else {
+          val link = headers.filter(ss => ss.name().equals("Location"))
+
+          if (link.nonEmpty && link.head.value().startsWith("http") && link.head.value() != str) {
+            innerRequest(link.head.value(), true)
+          } else {
+            println(s"error redirect $url")
+            Future.successful()
+          }
+        }
+      case err =>
+        sys.error(s"server is not responding: $err")
     }
   }
 }
