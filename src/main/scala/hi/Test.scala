@@ -80,7 +80,7 @@ object Test {
         url =>
           innerRequest(url, false)
       }
-      Thread.sleep(1000)
+      Thread.sleep(2000)
     }
   }
 
@@ -89,25 +89,25 @@ object Test {
 
     Http().singleRequest(HttpRequest(uri = str)).flatMap {
       case HttpResponse(StatusCodes.OK, _, _, _) =>
-        if (!recursion) {
-          println(s"attack $str")
-        } else {
-          println(s"attack after redirect $str")
-        }
-
-        Future.successful()
-      case HttpResponse(StatusCodes.Redirection(_), headers, _, _) =>
-        if (recursion) {
-          println(s"too many redirects $url")
-          Future.successful()
-        } else {
-          val link = headers.filter(ss => ss.name().equals("Location"))
-
-          if (link.nonEmpty && link.head.value().startsWith("http") && link.head.value() != str) {
-            innerRequest(link.head.value(), true)
+        Future.successful {
+          if (!recursion) {
+            println(s"attack $str")
           } else {
-            println(s"error redirect $url")
-            Future.successful()
+            println(s"attack after redirect $str")
+          }
+        }
+      case HttpResponse(StatusCodes.Redirection(_), headers, _, _) =>
+        Future.successful {
+          if (recursion) {
+            println(s"too many redirects $url")
+          } else {
+            val link = headers.filter(ss => ss.name().equals("Location"))
+
+            if (link.nonEmpty && link.head.value().startsWith("http") && link.head.value() != str) {
+              innerRequest(link.head.value(), true)
+            } else {
+              println(s"error redirect $url")
+            }
           }
         }
       case err =>
