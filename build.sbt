@@ -12,3 +12,5 @@ libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.6.18"
 libraryDependencies += "com.typesafe.akka" %% "akka-http" % "10.2.8"
 libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.6.18"
 libraryDependencies += "io.spray" %%  "spray-json" % "1.3.6"
+// https://mvnrepository.com/artifact/io.github.zamblauskas/scala-csv-parser
+libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.3.10"
