@@ -6,7 +6,6 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes, headers
 import hi.Agents.getCustomClientAgent
 import hi.Test.randomQueryParam
 import org.openqa.selenium.chrome.ChromeDriver
-import org.rogach.scallop._
 import io.github.bonigarcia.wdm.WebDriverManager
 
 import scala.collection.mutable
@@ -14,7 +13,7 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 
 object SmartDDos {
 
-  org.rogach.scallop.throwError.value = true
+  //org.rogach.scallop.throwError.value = true
 
   var agent = getCustomClientAgent
 
