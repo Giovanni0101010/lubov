@@ -25,5 +25,3 @@ libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.6.15"
 
 libraryDependencies += "io.spray" %%  "spray-json" % "1.3.6"
 libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.3.10"
-
-//libraryDependencies += "org.rogach" %% "scallop" % "4.1.0"
