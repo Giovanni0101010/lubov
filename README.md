@@ -18,3 +18,10 @@ mac os/linux terminal  -> java -jar bin/lubov.jar
 Используйте -Dmaster=false для запуска следующих копий, которые будут считывать куки из файла
 Используйте -Dfile=/cookie.csv путь к файлу с куками
 java -Dmaster=false -Dfile=/cookie.csv -jar SmartDDosXaknet.jar
+
+### SmartDDos.jar
+Используйте -Dmaster=true для запуска первой копии и ручной авторизации
+Используйте -Dmaster=false для запуска следующих копий, которые будут считывать куки из файла
+Используйте -Dfile=cookie.csv путь к файлу с куками
+Используйте -Dtarget=http://target.ru цель для аттаки
+java -Dmaster=false -Dtarget=http://target.ru -Dfile=/cookie.csv -jar SmartDDos.jar
