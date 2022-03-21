@@ -11,8 +11,8 @@ assemblyMergeStrategy in assembly := {
 
 lazy val root = (project in file("."))
   .settings(
-    name := "SmartDDos",
-    mainClass := Some("hi.SmartDDosAny")
+    name := "Sync",
+    mainClass := Some("hi.Sync")
   )
 
 libraryDependencies += "org.seleniumhq.selenium" % "selenium-java" % "3.141.59"
